@@ -32,7 +32,7 @@ class COLOR:
     blue = 0x2563EB
 
 
-class MESSAGE:
+class __MESSAGE:
     @property
     def finishing(self):
         return random.choice(
@@ -125,6 +125,9 @@ class MESSAGE:
                 "git push donation && git merge thanks 💾💜",
             ]
         )
+
+
+MESSAGE = __MESSAGE()
 
 
 class RelativeDateTime:

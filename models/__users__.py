@@ -1,8 +1,5 @@
-import os
-import re
 from datetime import UTC, datetime
-from urllib.parse import urlparse
-import requests
+from typing import Self
 
 import env
 from config import (
@@ -11,13 +8,18 @@ from config import (
     get_challenge_by_level,
     get_challenges,
 )
+from notations import CHALLENGE
+
 from .__self__ import Collection, Model
-from notations import CHALLENGE, SOCIAL
+
+__all__ = [
+    "User",
+    "UserChallenge",
+]
 
 
 class Log(Model):
     name: str
-    language: CHALLENGE.LANGUAGE
     id: int
     attempt: int
     trace: str
@@ -55,8 +57,8 @@ class UserChallenge(ChallengeConfig):
     log: str = None
     timestamp: str = None
 
-    def __init__(self, language: CHALLENGE.LANGUAGE, id: str, **kwargs) -> None:
-        self.__dict__.update({**kwargs, **get_challenge_by_id(language, id).__dict__})
+    def __init__(self, id: str, **kwargs) -> None:
+        self.__dict__.update({**kwargs, **get_challenge_by_id(id).__dict__})
 
     @property
     def solution(self) -> solution:
@@ -65,44 +67,14 @@ class UserChallenge(ChallengeConfig):
         return solution(filename=f"{self.timestamp}.{self.extension}")
 
 
-class UserSocials:
-    github: str = None
-
-    def __init__(self, **kwargs) -> None:
-        self.__dict__.update(kwargs)
-
-    def __iter__(self):
-        return iter(self.__dict__.items())
-
-    def exists(self, social: SOCIAL) -> bool:
-        link = self.__dict__.get(social)
-        return link is not None
-
-    @staticmethod
-    def isvalid(link: str) -> bool:
-        tokens = urlparse(link)
-        return all(
-            getattr(tokens, qualifying_attr) for qualifying_attr in ("scheme", "netloc")
-        )
-
-
-class UserData(Collection):
+class User(Collection):
     BASE = "users"
     id: int
     name: str
-    coins: float
-    token: str
     _challenges: list[dict]
     _challenge: dict | None = None
     _log: dict | None = None
     cooldowns: dict | None = None
-    _socials: dict
-    achievments: dict
-    quests: list[str] = None
-
-    @property
-    def socials(self):
-        return UserSocials(**self._socials)
 
     @property
     def challenge(self):
@@ -124,40 +96,27 @@ class UserData(Collection):
     def mention(self):
         return f"<@{self.id}>"
 
-    def sub_coins(self, amount: int, reason: str):
-        with open(
-            os.path.join(os.path.abspath(env.BASE_DIR), "data", "transactions.csv"), "a"
-        ) as f:
-            print(
-                f"{datetime.now(UTC)},{self.id},{self.coins},sub,{amount},{reason}",
-                file=f,
-            )
-        self.coins -= amount
-        self.update()
-        return self.coins
+    @classmethod
+    def read(cls, id: int) -> Self | None:
+        return super().read(id)
 
-    def add_coins(self, amount: int | float, reason: str):
-        with open(
-            os.path.join(os.path.abspath(env.BASE_DIR), "data", "transactions.csv"), "a"
-        ) as f:
-            print(
-                f"{datetime.now(UTC)},{self.id},{self.coins},add,{amount},{reason}",
-                file=f,
-            )
-        self.coins += amount
-        self.update()
-        return self.coins
+    @classmethod
+    def create(cls, id: int, name: str) -> Self:
+        user = cls(id=id, name=name, _challenges=[])
+        user.update()
+        return user
 
-    def request_challenge(self, language: CHALLENGE.LANGUAGE):
-        all_challenges = get_challenges(language)
+    def request(self):
+        if (all_challenges := get_challenges()) is None:
+            return None
+
         user_challenges = self.challenges
 
         all_user_challenges: dict[tuple[int, str], list[UserChallenge]] = {}
 
         for challenge in user_challenges:
-            if challenge.language == language:
-                all_user_challenges.setdefault((challenge.level, challenge.name), [])
-                all_user_challenges[(challenge.level, challenge.name)].append(challenge)
+            all_user_challenges.setdefault((challenge.level, challenge.name), [])
+            all_user_challenges[(challenge.level, challenge.name)].append(challenge)
 
         all_user_challenges = dict(
             sorted(all_user_challenges.items(), key=lambda x: x[0][0])
@@ -178,49 +137,14 @@ class UserData(Collection):
         if level >= len(all_challenges):
             return None
 
-        challenge = get_challenge_by_level(language, level)
+        challenge = get_challenge_by_level(level)
 
         self._challenge = {
             "id": challenge.id,
-            "language": challenge.language,
             "attempt": attempt,
             "requested": str(datetime.now(UTC)),
         }
 
-        if attempt > 7:
-            self.sub_coins(challenge.coins * 0.07, "challenge cost")
-
         self.update()
 
         return challenge
-
-    def add_social(self, social: SOCIAL, link: str):
-        is_valid_link = UserSocials.isvalid(link)
-
-        match social:
-            case "github":
-                url = "https://api.github.com/users/"
-                if is_valid_link:
-                    if match := re.search(r"github\.com/([^/]+)", link):
-                        url += match.group(1)
-                    else:
-                        return None
-                else:
-                    url += link
-                response = requests.get(url)
-                if not response.ok:
-                    return None
-                if not (link := response.json().get("html_url")):
-                    return None
-        self._socials[social] = link
-        self.update()
-        return link
-
-    def add_quest(self, language: str) -> bool:
-        if not self.quests:
-            self.quests = []
-        if language in self.quests:
-            return False
-        self.quests.append(language)
-        self.update()
-        return True

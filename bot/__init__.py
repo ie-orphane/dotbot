@@ -7,7 +7,8 @@ from discord.ext import commands
 import env
 import tasks
 from consts import EXCLUDE_FILES
-from utils import Log
+from models import User
+from utils import COLOR, Log
 
 
 class Bot(commands.Bot):
@@ -47,6 +48,31 @@ class Bot(commands.Bot):
             await self.load_extension(cog)
 
         Log.info("BOT", f"{len(await self.tree.sync())} Slash Command(s).")
+
+    @staticmethod
+    async def user_is_unkown(
+        interaction: discord.Interaction,
+        member: discord.Member | discord.User = None,
+        /,
+        **kwargs,
+    ) -> User | None:
+        member = member or interaction.user
+        if (user := User.read(member.id)) is None:
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    **kwargs,
+                    color=COLOR.red,
+                    description=(
+                        f"⚔️ {interaction.user.mention}, \n"
+                        " It seems your aren’t quite ready for this **journey**."
+                        if member == interaction.user
+                        else f"{member.mention} hasn’t earned their place on this **journey**."
+                    ),
+                ),
+                ephemeral=True,
+            )
+            return
+        return user
 
     async def on_ready(self):
         Log.info("BOT", f"Logged in as {self.user}")

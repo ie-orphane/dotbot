@@ -4,9 +4,9 @@ import env
 from utils import File, Log
 
 DATA = {
-    "dirs": ["projects", "users"],
+    "dirs": ["users"],
     "files": {
-        "[]": ["evaluations", "files"],
+        "[]": ["evaluations"],
     },
     "tables": [
         ("interactions", "datetime,id,name,command,options"),
@@ -22,9 +22,8 @@ STORAGE = [
 ]
 CONFIG = {
     "global": {
-        int: ("GUILD",),
-        list: ("USERS"),
-        dict: ("CHANNELS", "EMOJIS", "REACTIONS"),
+        int: ["GUILD"],
+        dict: ["EMOJIS"],
     },
 }
 

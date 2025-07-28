@@ -1,11 +1,13 @@
-import discord
-import traceback
-import env
 import os
+import traceback
+from datetime import UTC, datetime
+
+import discord
 from discord.ext import commands
-from consts import COLOR
-from datetime import datetime, UTC
+
+import env
 from bot import Bot
+from utils import COLOR
 
 
 class __Cog:
@@ -43,23 +45,6 @@ class __Cog:
                 ),
             ).set_footer(
                 text="If this error occurs multiple times, please contact the owner."
-            )
-        )
-
-        if (error_channel := self.bot.get_listed_channel("error")) is None:
-            return
-
-        await error_channel.send(
-            embed=discord.Embed(
-                color=self.color.red,
-                description=(
-                    f"User: {interaction.user.mention} ({interaction.user.id})\n"
-                    f"Command: /{interaction.command.qualified_name} ({interaction.id})\n"
-                    f"Server: {interaction.guild} #{interaction.channel}\n"
-                    f"Log: `{log_id}`\n"
-                    f"Error: {error}\n"
-                    f"```\n{traceback.format_exc()}\n```"
-                ),
             )
         )
 

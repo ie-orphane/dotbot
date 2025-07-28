@@ -2,14 +2,17 @@ import json
 
 import env
 from config import ChallengeConfig, get_challenge_by_id
+
 from .__self__ import Document
-from .__users__ import UserData, solution
+from .__users__ import User, solution
+
+__all__ = ["Evaluation"]
 
 
-class EvaluationData(Document):
+class Evaluation(Document):
     BASE: str = "evaluations"
     solution: solution
-    user: UserData
+    user: User
     challenge: ChallengeConfig
     timestamp: str
 
@@ -17,7 +20,6 @@ class EvaluationData(Document):
         self.__dict__.update(
             user=self.user.id,
             id=self.challenge.id,
-            language=self.challenge.language,
         )
         self.__dict__.pop("challenge", None)
         return self.__dict__
@@ -28,8 +30,8 @@ class EvaluationData(Document):
             return [
                 cls(
                     timestamp=x["timestamp"],
-                    user=UserData.read(x["user"]),
-                    challenge=get_challenge_by_id(x["language"], x["id"]),
+                    user=User.read(x["user"]),
+                    challenge=get_challenge_by_id(x["id"]),
                 )
                 for x in json.load(file)
             ]

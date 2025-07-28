@@ -6,14 +6,13 @@ import discord
 from discord.ext import commands, tasks
 
 import env
-from config import get_emoji
-from models import EvaluationData
-from utils import Log, number, COLOR, MESSAGE
+from models import Evaluation
+from utils import COLOR, MESSAGE, Log
 
 
 @tasks.loop(minutes=1)
 async def evaluations(bot: commands.Bot):
-    for evaluation in EvaluationData.read_all():
+    for evaluation in Evaluation.read_all():
         Log.job(
             "Evaluation", f"{evaluation.challenge.name} from {evaluation.user.name}"
         )
@@ -21,7 +20,6 @@ async def evaluations(bot: commands.Bot):
             f"Datetime: {datetime.now(UTC)}",
             f"User: {evaluation.user.id}",
             f"Challenge: {evaluation.challenge.id}",
-            f"Language: {evaluation.challenge.language}",
             f"Solution: {evaluation.solution.filename}",
             f"Attempt: {evaluation.user.challenge.attempt}",
         )
@@ -32,9 +30,9 @@ async def evaluations(bot: commands.Bot):
         with open(evaluation.solution.path) as f:
             solution = f.read()
 
-        forbiddens = set(
-            evaluation.challenge.forbidden + evaluation.challenge.not_allowed
-        ).intersection(solution.split())
+        forbiddens = set(evaluation.challenge.not_allowed).intersection(
+            solution.split()
+        )
 
         if len(forbiddens) > 0:
             result = "FORBIDDEN"
@@ -46,6 +44,7 @@ async def evaluations(bot: commands.Bot):
                         [evaluation.challenge.runner, evaluation.solution.path]
                         + test.args,
                         capture_output=True,
+                        input=test.input,
                         text=True,
                         timeout=4,
                     )
@@ -113,10 +112,6 @@ async def evaluations(bot: commands.Bot):
 
             if result != "TIMEOUT":
                 evaluation.log(f"Result: {result}")
-            if result == "OK":
-                evaluation.user.add_coins(
-                    evaluation.challenge.coins, "challenge reward"
-                )
 
         evaluation.user._challenge.update(
             {
@@ -129,12 +124,10 @@ async def evaluations(bot: commands.Bot):
         evaluation.user._log = None
         if feedback is not None:
             evaluation.user._log = {
-                "language": evaluation.challenge.language,
                 "id": evaluation.challenge.id,
                 "name": evaluation.challenge.name,
                 "attempt": evaluation.user.challenge.attempt,
                 "trace": feedback,
-                "cost": evaluation.challenge.coins * 0.05,
                 "result": result,
             }
 
@@ -152,10 +145,8 @@ async def evaluations(bot: commands.Bot):
                         description=(
                             f"{MESSAGE.succeeding}\n\n"
                             f"**`Challenge`**: **{evaluation.challenge.name}**\n"
-                            f"**`Language`**: {evaluation.challenge.language} {get_emoji(evaluation.challenge.language)}\n"
                             f"**`Level`**: {evaluation.challenge.level}\n"
-                            f"**`Result`**: **{result}**\n"
-                            f"**`Reward`**: {number(evaluation.challenge.coins)} {get_emoji("coin")}"
+                            f"**`Result`**: **{result}**"
                         ),
                     )
                     if result == "OK"
@@ -164,7 +155,6 @@ async def evaluations(bot: commands.Bot):
                         description=(
                             f"{MESSAGE.failing}\n\n"
                             f"**`Challenge`**: **{evaluation.challenge.name}**\n"
-                            f"**`Language`**: {evaluation.challenge.language} {get_emoji(evaluation.challenge.language)}\n"
                             f"**`Level`**: {evaluation.challenge.level}\n"
                             f"**`Result`**: **{result}**"
                         ),
@@ -175,13 +165,13 @@ async def evaluations(bot: commands.Bot):
             Log.error("Evaluation", f"MessageFailed: {evaluation.user.name}")
 
             with open(
-                f"{env.BASE_DIR}/storage/errors/{evaluation.solution.filename.replace('.sh', '.log')}",
+                f"{env.BASE_DIR}/storage/errors/{evaluation.solution.filename.replace(f".{evaluation.challenge.extension}", '.log')}",
                 "w",
             ) as file:
                 file.writelines(
                     [
                         f"User: {evaluation.user.name} ({evaluation.user.id})\n",
-                        f"Challenge: {evaluation.challenge.name} ({evaluation.challenge.id}) #{evaluation.challenge.language}\n",
+                        f"Challenge: {evaluation.challenge.name} ({evaluation.challenge.id})\n",
                         f"Error: {e}\n",
                     ]
                 )
