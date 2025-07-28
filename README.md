@@ -1,17 +1,16 @@
-# LionBot 🦁🤖
+# DotBot 🤖
 
 [![License](https://img.shields.io/badge/License-GNU-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://github.com/ie-orphane/lionbot/issues)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://github.com/ie-orphane/dotbot/issues)
 
-LionBot is an intelligent bot designed to assist with tasks for the [LionsGeek](https://lionsgeek.ma/) community.
+DotBot is an intelligent bot designed to assist with tasks for the [.learning](https://learning-web-path.vercel.app/) community.
 
-Whether you're looking to automate processes or get help with specific commands, LionBot is your go-to tool!
+Whether you're looking to automate processes or get help with specific commands, DotBot is your go-to tool!
 
 
 ## Features ✨
 
-* **Leaderboard 🏆:** Track and display coding activity using [WakaTime](https://wakatime.com/) integrations. 📊
 * **Automation:** Streamline project reviews by automatically sending them to coaches. 📝
 * **Challenges 🎯:** Level up geeks coding skills with engaging challenges. 💻
 * **Rewards 🎁:** Earn coins and unlock rewards for active participation. 💰
